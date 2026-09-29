@@ -8,11 +8,11 @@ LolSikins is a modified version of cslol-manager by LeagueToolkit (https://githu
 GPL-3.0), changed in 2026: new interface, skin store and languages.
 LolSikins is not official and is not endorsed by or affiliated with League Toolkit or Riot Games.
 
-Patcher
--------
-LolSikins does not include a patcher. To apply skins it uses the patcher of LTK Manager by League Toolkit
-(https://github.com/LeagueToolkit/ltk-manager), which the user installs separately. Those files stay in the
-LTK Manager installation as its official signed release; LolSikins does not copy, modify or redistribute them.
+Patcher (patcher\ltk_patcher_host.exe, patcher\ltk_patcher_dll.dll)
+------------------------------------------------------------------
+Binaries from LTK Manager by League Toolkit (https://github.com/LeagueToolkit/ltk-manager), bundled unchanged with
+their original signature under the LTK Patcher License (LTK-PATCHER-LICENSE.md). That license governs their
+distribution; this is a personal-use build. Their code is not modified.
 
 Qt 5.15.18 (statically linked into LolSikins.exe)
 ------------------------------------------------

@@ -143,10 +143,10 @@ static void check_basic_info() {
     wprintf(L"Free space: %s: [%hs]\n", bytes_to_str(free_bytes).c_str(), free_bytes < GB ? REP_SUS : REP_OK);
 }
 
-// The patcher DLL: the user's own LTK Manager installation when present, else the copy bundled next to LolSikins
-// (this tool lives in tools\, so the bundle is one level up in patcher\).
+// The patcher DLL: the copy bundled next to LolSikins (this tool lives in tools\, so the bundle is one level up in
+// patcher\), else an installed LTK Manager as a fallback.
 static std::wstring find_patcher_dll() {
-    auto candidates = std::vector<std::wstring>{};
+    auto candidates = std::vector<std::wstring>{basedir(basedir(exe_path())) + L"\\patcher\\ltk_patcher_dll.dll"};
     for (auto const var : {L"ProgramFiles", L"ProgramW6432", L"LOCALAPPDATA"}) {
         auto base = std::wstring((size_t)MAX_PATH, L'\0');
         base.resize(GetEnvironmentVariableW(var, base.data(), MAX_PATH));
@@ -155,7 +155,6 @@ static std::wstring find_patcher_dll() {
                                  L"\\LTK Manager\\ltk_patcher_dll.dll");
         }
     }
-    candidates.push_back(basedir(basedir(exe_path())) + L"\\patcher\\ltk_patcher_dll.dll");
     for (auto const& candidate : candidates) {
         if (GetFileAttributesW(candidate.c_str()) != INVALID_FILE_ATTRIBUTES) {
             return candidate;

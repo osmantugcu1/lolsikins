@@ -35,10 +35,11 @@ static QString patcherMessage(QString key, QStringList args = {}) {
     return args.join(QChar(0x1f));
 }
 
-// The patcher is used from the user's own LTK Manager installation when it is present, because that copy is the
-// genuine signed release and attaches to the game reliably. A copy bundled next to LolSikins is only a fallback.
+// The patcher bundled next to LolSikins is preferred: it is the copy fetched and verified at build time, and it
+// keeps League Toolkit's signature so it attaches to the game. If it is missing (for example an antivirus removed
+// it) an installed LTK Manager is used as a fallback.
 static QString findPatcherHost(QString const& prog) {
-    QStringList candidates;
+    QStringList candidates = {prog + PATCHER_HOST_EXE};
 #ifdef _WIN32
     for (auto const& base : {qEnvironmentVariable("ProgramFiles"),
                              qEnvironmentVariable("ProgramW6432"),
@@ -48,7 +49,6 @@ static QString findPatcherHost(QString const& prog) {
         }
     }
 #endif
-    candidates.append(prog + PATCHER_HOST_EXE);
     for (auto const& candidate : candidates) {
         if (QFileInfo::exists(candidate)) {
             return candidate;

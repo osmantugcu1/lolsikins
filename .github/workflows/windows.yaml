@@ -33,10 +33,34 @@ jobs:
         test -f lolsikins/tools/mod-tools.exe
         test -f lolsikins/tools/diag.exe
         test -f lolsikins/licenses/LolSikins-source.zip
-    # LolSikins does not ship the patcher. It uses the one from the user's own LTK Manager installation, which stays
-    # the genuine signed release — the copy that attaches to the game reliably and that we are not allowed to
-    # redistribute signed. So there is nothing to fetch or bundle here.
-    #
+    # Bundles the patcher from LTK Manager's latest release, unchanged and with its original League Toolkit
+    # signature so it attaches to the game. LolSikins is a personal-use build and is not distributed. Re-running
+    # this workflow picks up a newer patcher when the old one expires.
+    - name: "Fetch patcher"
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        $release = Invoke-RestMethod -Headers @{ Authorization = "Bearer $env:GH_TOKEN" } -Uri "https://api.github.com/repos/LeagueToolkit/ltk-manager/releases/latest"
+        $tag = $release.tag_name
+        if (-not $tag) { throw "Could not resolve the latest LTK Manager release" }
+        Write-Host "Patcher release: $tag"
+        $dir = "lolsikins/patcher"
+        New-Item -ItemType Directory -Force $dir | Out-Null
+        $base = "https://raw.githubusercontent.com/LeagueToolkit/ltk-manager/$tag"
+        foreach ($file in "ltk_patcher_host.exe", "ltk_patcher_dll.dll") {
+          Invoke-WebRequest -Uri "$base/src-tauri/resources/$file" -OutFile (Join-Path $dir $file)
+        }
+        Invoke-WebRequest -Uri "$base/LTK-PATCHER-LICENSE.md" -OutFile "lolsikins/licenses/LTK-PATCHER-LICENSE.md"
+        Add-Content "lolsikins/version.txt" "Patcher: $tag"
+        foreach ($file in "ltk_patcher_host.exe", "ltk_patcher_dll.dll") {
+          $path = Join-Path $dir $file
+          $signature = Get-AuthenticodeSignature $path
+          Write-Host "$file $((Get-FileHash $path).Hash) $($signature.Status) $($signature.SignerCertificate.Subject)"
+          if ($signature.Status -ne "Valid" -or $signature.SignerCertificate.Subject -notmatch "CN=Natoken LLC") {
+            throw "$file is not the genuine release signed by League Toolkit (Natoken LLC)"
+          }
+        }
     # Signs LolSikins.exe and the tools with our own certificate when the SIGNING_CERT (base64 .pfx) and
     # SIGNING_PASSWORD repository secrets exist. Without them the build stays unsigned.
     - name: "Sign"
@@ -85,8 +109,6 @@ jobs:
         gh release delete latest --cleanup-tag --yes 2>$null
         $notes = @(
           "Build $env:GITHUB_RUN_NUMBER ($version)",
-          "",
-          "**Install [LTK Manager](https://github.com/LeagueToolkit/ltk-manager/releases) first.** LolSikins uses its patcher to apply skins.",
           "",
           "1. Download **LolSikins-windows.zip** below and extract the whole zip into a folder.",
           "2. Run **LolSikins.exe**. If Windows warns about an unknown publisher, choose *More info -> Run anyway*.",
