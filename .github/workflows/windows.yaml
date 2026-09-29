@@ -119,5 +119,18 @@ jobs:
         Compress-Archive -Path lolsikins/* -DestinationPath LolSikins-windows.zip
         $version = (Get-Content lolsikins/version.txt) -join ", "
         gh release delete latest --cleanup-tag --yes 2>$null
-        gh release create latest LolSikins-windows.zip --target $env:GITHUB_SHA --title "LolSikins" --notes "Build $env:GITHUB_RUN_NUMBER ($version). Download LolSikins-windows.zip, extract it and run LolSikins.exe. See README.txt inside the zip."
+        $notes = @(
+          "Build $env:GITHUB_RUN_NUMBER ($version)",
+          "",
+          "1. Download **LolSikins-windows.zip** below and extract the whole zip into a folder.",
+          "2. Run **LolSikins.exe**. If Windows warns about an unknown publisher, choose *More info → Run anyway*.",
+          "3. Pick your League of Legends folder in the settings.",
+          "4. Open the **Store**, install a skin, turn it on and press **START**, then join a match.",
+          "",
+          "Fan-made skins only. Riot's terms of service do not allow third-party programs that change game files; use it at your own risk.",
+          "",
+          "LolSikins isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc."
+        )
+        Set-Content -Encoding utf8 release-notes.md $notes
+        gh release create latest LolSikins-windows.zip --target $env:GITHUB_SHA --title "LolSikins" --notes-file release-notes.md
         if ($LASTEXITCODE -ne 0) { throw "Could not publish the release" }

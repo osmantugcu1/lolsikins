@@ -1,19 +1,47 @@
 # LolSikins
 
-A custom skin manager for League of Legends. Skins only show up on the screen of the person using them.
+A custom skin manager for League of Legends with a built-in skin store. Skins only show up on your own screen; everyone else in the match sees the normal skins.
+
+**[Download LolSikins for Windows](../../releases/latest)** · Free and open source (GPL-3.0)
+
+![Main window](docs/screenshot-main.png)
+
+## Features
+
+- **Skin store:** reads a GitHub repository of `.fantome` files, lists the skins and their chromas by champion, and installs the ones you pick with one click. It opens on `bettie9/LeagueSkins` and works with any other repository, private ones included.
+- **Auto-update:** when a skin changes in the repository, the installed copy is updated for you.
+- **Simple controls:** turn skins on and off, enable them all at once, search, or import your own `.fantome` files.
+- **Neon interface** in English, Turkish and Kurdish (Kurmanji), with four color themes.
+- **Optional anti-skinhack scan** that stops skins which fail the scan (off by default because it can cost FPS).
+
+![Skin store](docs/screenshot-store.png)
+
+## Quick start
+
+1. Download `LolSikins-windows.zip` from the [latest release](../../releases/latest) and extract the whole zip into a folder.
+2. Run `LolSikins.exe`. Windows may warn about an unknown publisher: choose **More info → Run anyway**.
+3. Pick your League of Legends folder in the settings.
+4. Open the **Store**, install a skin, turn it on and press **START**. Then join a match.
+
+## How it works
+
+LolSikins builds an overlay from the skins you turned on. While you play, the patcher makes the game load those files instead of the original ones, so nothing in your game folder is changed and the skins are only visible on your screen.
+
+## FAQ
+
+- **Can I get banned?** Riot's terms of service do not allow third-party programs that change game files. Custom skin tools are widely used, but the risk is yours.
+- **Can I use Riot's paid skins?** No. LolSikins is for fan-made skins only.
+- **My antivirus or Windows complains.** The patcher attaches to the game, which antivirus software often dislikes, and the files are not signed by a trusted publisher. The full source code is in this repository and in every download.
+- **Skins do not show up in game.** Look at `log.txt` next to `LolSikins.exe`. If it says the patcher reached its end of life, download the latest release.
 
 ## Rules
 
 - Fan-made, original custom skins only. No copies of Riot's paid skins and no mods that give an advantage in game (range indicators, hitboxes and so on).
 - The **Anti-skinhack scan** in the settings is off by default because it costs a lot of FPS on some machines. While it is off, a skin that fails the scan does not stop the patcher, only a warning goes to `log.txt`. When it is on, skins are stopped if one fails the scan.
 
-## Download
+## Package
 
-Download `LolSikins-windows.zip` from the [latest release](../../releases/latest), extract it, run `LolSikins.exe` and pick your League of Legends folder.
-
-GitHub Actions builds every push to `main` and replaces the release with the new build.
-
-Package layout:
+GitHub Actions builds every push to `main` and replaces the [latest release](../../releases/latest) with the new build.
 
 ```
 LolSikins.exe      the program
@@ -64,16 +92,16 @@ Suggested layout (not required):
 
 ```
 Malphite/
-  SexStarMalphite.fantome
+  KeypadPhone.fantome
   chromas/
-    SexStarMalphite/
+    KeypadPhone/
       Blue.fantome
       Red.fantome
 ```
 
 - The champion is the name of the first folder under `skins/` (or the repository root). Files outside a folder are listed under "Diğer".
-- A file in a subfolder of a champion folder is a chroma. The `chromas` folder name is ignored; the folder under it names the skin the chroma belongs to and must match the main skin's file name. Chromas show up under their skin as `↳ Blue`. `Malphite/SexStarMalphite/Blue.fantome` works the same way.
-- Skins are installed as "Malphite - SexStarMalphite", chromas as "Malphite - SexStarMalphite - Blue (Chroma)".
+- A file in a subfolder of a champion folder is a chroma. The `chromas` folder name is ignored; the folder under it names the skin the chroma belongs to and must match the main skin's file name. Chromas show up under their skin as `↳ Blue`. `Malphite/KeypadPhone/Blue.fantome` works the same way.
+- Skins are installed as "Malphite - KeypadPhone", chromas as "Malphite - KeypadPhone - Blue (Chroma)".
 - Renaming a file or folder makes it a new skin; the old one stays installed.
 
 ### Auto-update

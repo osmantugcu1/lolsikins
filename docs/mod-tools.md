@@ -1,6 +1,6 @@
 ## mod-tools CLI
 
-A small CLI for working with CSLOL-style mods and WADs: importing/exporting, copying/optimizing, building overlays, and running the live overlay patcher.
+A small CLI for working with `.fantome` mods and WADs: importing/exporting, copying/optimizing and building overlays. It ships in the `tools` folder of LolSikins.
 
 Unless otherwise noted, paths may be absolute or relative. Commands log progress and exit with non‑zero on error.
 
@@ -160,7 +160,7 @@ mod-tools mkoverlay ./Mods ./Overlay --game:/games/LoL --mods:MyModA/MyModB --ig
 
 ### runoverlay
 
-Run the overlay with the live patcher and stream status to stdout. Exit by pressing Enter when idle.
+Not available in LolSikins: the in-process patcher was removed and the command exits with an error. LolSikins applies overlays with the patcher host in its `patcher` folder instead. The original behaviour was to run the overlay with the live patcher and stream status to stdout.
 
 ```bash
 mod-tools runoverlay <overlay_dir> <config_file> [--game:<path>] [--opts:<opt1>/<opt2>/...]

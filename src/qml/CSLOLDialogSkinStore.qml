@@ -402,9 +402,11 @@ NeonDialog {
                 property bool outdated: installed && cslolDialogSkinStore.installedShas !== "" && hasUpdate(model)
                 property bool active: pending !== null && pending.name === name
 
-                width: skinsView.width - 14
-                height: 60
+                // Chromas are indented under their skin; the width shrinks with the indent so their button stays
+                // inside the list instead of being cut off at the right edge.
                 x: model.chroma ? 28 : 0
+                width: skinsView.width - 14 - x
+                height: 60
                 radius: Neon.radiusSmall
                 color: rowMouse.containsMouse ? Neon.surfaceHover : Neon.alpha(Neon.surface, 0.85)
                 border.width: 1
