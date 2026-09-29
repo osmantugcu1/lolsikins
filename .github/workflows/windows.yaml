@@ -1,0 +1,123 @@
+name: Build Windows
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+    - name: "Clone source"
+      uses: actions/checkout@v4
+    - name: "Setup msvc"
+      uses: ilammy/msvc-dev-cmd@v1
+    - name: "Download Qt5"
+      shell: bash
+      run: |
+        curl --fail --output C:/qt5.7z -L "https://github.com/LoL-Fantome/lolcustomskin-tools/releases/download/release23/qt5.15.18-x86_64-msvc-static.7z"
+        sha256sum C:/qt5.7z
+        7z x -oC:/ C:/qt5.7z
+    - name: "Build"
+      run: |
+        mkdir build
+        cd build
+        cmake -G "NMake Makefiles" "-DCMAKE_PREFIX_PATH:PATH=C:/qt5.15.18-x86_64-msvc-static" "-DCMAKE_MSVC_RUNTIME_LIBRARY:STRING=MultiThreaded" "-DCMAKE_BUILD_TYPE:STRING=Release" ..
+        cmake --build .
+    - name: "Package"
+      shell: bash
+      run: |
+        ./make-release.sh build
+        test -f lolsikins/LolSikins.exe
+        test -f lolsikins/tools/mod-tools.exe
+        test -f lolsikins/tools/diag.exe
+        test -f lolsikins/licenses/LolSikins-source.zip
+    # The patcher binaries come from LTK Manager's latest release. Their license (licenses/LTK-PATCHER-LICENSE.md)
+    # allows redistributing them only without League Toolkit's code signature: the download is first checked to be
+    # the genuine signed release, then that signature is removed. Re-running this workflow picks up a newer patcher
+    # when the old one expires.
+    - name: "Fetch patcher"
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        $signtool = (Get-Command signtool.exe -ErrorAction SilentlyContinue).Source
+        if (-not $signtool) {
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+        }
+        Write-Host "signtool: $signtool"
+        $release = Invoke-RestMethod -Headers @{ Authorization = "Bearer $env:GH_TOKEN" } -Uri "https://api.github.com/repos/LeagueToolkit/ltk-manager/releases/latest"
+        $tag = $release.tag_name
+        if (-not $tag) { throw "Could not resolve the latest LTK Manager release" }
+        Write-Host "Patcher release: $tag"
+        $dir = "lolsikins/patcher"
+        New-Item -ItemType Directory -Force $dir | Out-Null
+        $base = "https://raw.githubusercontent.com/LeagueToolkit/ltk-manager/$tag"
+        foreach ($file in "ltk_patcher_host.exe", "ltk_patcher_dll.dll") {
+          Invoke-WebRequest -Uri "$base/src-tauri/resources/$file" -OutFile (Join-Path $dir $file)
+        }
+        Invoke-WebRequest -Uri "$base/LTK-PATCHER-LICENSE.md" -OutFile "lolsikins/licenses/LTK-PATCHER-LICENSE.md"
+        Add-Content "lolsikins/version.txt" "Patcher: $tag"
+        foreach ($file in "ltk_patcher_host.exe", "ltk_patcher_dll.dll") {
+          $path = Join-Path $dir $file
+          $signature = Get-AuthenticodeSignature $path
+          Write-Host "$file $((Get-FileHash $path).Hash) $($signature.Status) $($signature.SignerCertificate.Subject)"
+          if ($signature.Status -ne "Valid" -or $signature.SignerCertificate.Subject -notmatch "CN=Natoken LLC") {
+            throw "$file is not the genuine release signed by League Toolkit's signing identity (Natoken LLC)"
+          }
+          & $signtool remove /s $path
+          if ($LASTEXITCODE -ne 0) { throw "Could not remove the signature of $file" }
+          $status = (Get-AuthenticodeSignature $path).Status
+          if ($status -ne "NotSigned") { throw "$file still has a signature ($status)" }
+          Write-Host "$file signature removed"
+        }
+    # Signs the program and the patcher with our own certificate when the SIGNING_CERT (base64 .pfx) and
+    # SIGNING_PASSWORD repository secrets exist. Without them the package stays unsigned, which the patcher
+    # license also allows.
+    - name: "Sign"
+      shell: pwsh
+      env:
+        SIGNING_CERT: ${{ secrets.SIGNING_CERT }}
+        SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+      run: |
+        if (-not $env:SIGNING_CERT) {
+          Write-Host "::notice::No SIGNING_CERT secret, the package is not signed."
+          exit 0
+        }
+        $signtool = (Get-Command signtool.exe -ErrorAction SilentlyContinue).Source
+        if (-not $signtool) {
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+        }
+        $pfx = Join-Path $env:RUNNER_TEMP "signing.pfx"
+        [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:SIGNING_CERT))
+        try {
+          $files = @("lolsikins/LolSikins.exe", "lolsikins/patcher/ltk_patcher_host.exe", "lolsikins/patcher/ltk_patcher_dll.dll") + (Get-ChildItem "lolsikins/tools/*.exe" | ForEach-Object FullName)
+          & $signtool sign /f $pfx /p $env:SIGNING_PASSWORD /fd SHA256 @files
+          if ($LASTEXITCODE -ne 0) { throw "signtool sign failed" }
+        } finally {
+          Remove-Item $pfx -Force
+        }
+        foreach ($file in $files) {
+          $subject = (Get-AuthenticodeSignature $file).SignerCertificate.Subject
+          Write-Host "$file signed by $subject"
+          if (-not $subject -or $subject -match "Natoken") { throw "$file is not signed with our certificate" }
+        }
+    - name: "Upload Artifact"
+      uses: actions/upload-artifact@v4
+      with:
+        name: lolsikins-windows
+        path: lolsikins/
+        retention-days: 30
+    # Replaces the "latest" release with this build, so the download link stays the same.
+    - name: "Publish release"
+      if: github.ref == 'refs/heads/main'
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        Compress-Archive -Path lolsikins/* -DestinationPath LolSikins-windows.zip
+        $version = (Get-Content lolsikins/version.txt) -join ", "
+        gh release delete latest --cleanup-tag --yes 2>$null
+        gh release create latest LolSikins-windows.zip --target $env:GITHUB_SHA --title "LolSikins" --notes "Build $env:GITHUB_RUN_NUMBER ($version). Download LolSikins-windows.zip, extract it and run LolSikins.exe. See README.txt inside the zip."
+        if ($LASTEXITCODE -ne 0) { throw "Could not publish the release" }
