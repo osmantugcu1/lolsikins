@@ -4,6 +4,8 @@ A custom skin manager for League of Legends with a built-in skin store. Skins on
 
 **[Download LolSikins for Windows](../../releases/latest)** · Free and open source (GPL-3.0)
 
+> Install [LTK Manager](https://github.com/LeagueToolkit/ltk-manager/releases) first. LolSikins uses its patcher to apply skins and does not ship one of its own.
+
 ![Main window](docs/screenshot-main.png)
 
 ## Features
@@ -18,21 +20,25 @@ A custom skin manager for League of Legends with a built-in skin store. Skins on
 
 ## Quick start
 
-1. Download `LolSikins-windows.zip` from the [latest release](../../releases/latest) and extract the whole zip into a folder.
-2. Run `LolSikins.exe`. Windows may warn about an unknown publisher: choose **More info → Run anyway**.
-3. Pick your League of Legends folder in the settings.
-4. Open the **Store**, install a skin, turn it on and press **START**. Then join a match.
+1. Install [LTK Manager](https://github.com/LeagueToolkit/ltk-manager/releases). LolSikins uses its patcher.
+2. Download `LolSikins-windows.zip` from the [latest release](../../releases/latest) and extract the whole zip into a folder.
+3. Run `LolSikins.exe`. Windows may warn about an unknown publisher: choose **More info → Run anyway**.
+4. Pick your League of Legends folder in the settings.
+5. Open the **Store**, install a skin, turn it on and press **START**. Then join a match.
 
 ## How it works
 
-LolSikins builds an overlay from the skins you turned on. While you play, the patcher makes the game load those files instead of the original ones, so nothing in your game folder is changed and the skins are only visible on your screen.
+LolSikins builds an overlay from the skins you turned on and hands it to the patcher, which makes the game load those files instead of the original ones while you play. Nothing in your game folder is changed and the skins are only visible on your screen.
+
+LolSikins does not ship a patcher. It uses the one that comes with [LTK Manager](https://github.com/LeagueToolkit/ltk-manager), installed separately, from wherever LTK Manager put it. That patcher is League Toolkit's signed release; its license does not allow shipping it, signed, inside another program, and an unsigned copy is refused by the game, so LolSikins uses your installed copy instead of bundling one.
 
 ## FAQ
 
 - **Can I get banned?** Riot's terms of service do not allow third-party programs that change game files. Custom skin tools are widely used, but the risk is yours.
 - **Can I use Riot's paid skins?** No. LolSikins is for fan-made skins only.
-- **My antivirus or Windows complains.** The patcher attaches to the game, which antivirus software often dislikes, and the files are not signed by a trusted publisher. The full source code is in this repository and in every download.
-- **Skins do not show up in game.** Look at `log.txt` next to `LolSikins.exe`. If it says the patcher reached its end of life, download the latest release.
+- **My antivirus or Windows complains.** LolSikins is not signed by a trusted publisher; its full source code is in this repository and in every download.
+- **"The patcher was not found."** Install [LTK Manager](https://github.com/LeagueToolkit/ltk-manager/releases); LolSikins uses its patcher.
+- **Skins do not show up in game.** Look at `log.txt` next to `LolSikins.exe`. If it says the patcher reached its end of life, update LTK Manager.
 
 ## Rules
 
@@ -47,22 +53,21 @@ GitHub Actions builds every push to `main` and replaces the [latest release](../
 LolSikins.exe      the program
 README.txt         short user guide
 tools/             mod-tools and helper tools
-patcher/           the patcher that applies skins to the game
 licenses/          licenses, third-party notices and the source code (LolSikins-source.zip)
 ```
 
 ## Sharing
 
-Share the release zip. Do not share your own folder: `config.ini` holds your GitHub token.
+Share the release zip and tell the person to install LTK Manager first. Do not share your own folder: `config.ini` holds your GitHub token.
 
 Legal notes:
 
 - The code is GPL-3.0 ([LICENSE](LICENSE)). Anyone who receives the program must also be able to get its source code, so the package contains it as `licenses/LolSikins-source.zip`. Third-party licenses: [dist/licenses](dist/licenses).
-- The patcher files come from the official LTK Manager release. Its license ([LTK-PATCHER-LICENSE.md](https://github.com/LeagueToolkit/ltk-manager/blob/main/LTK-PATCHER-LICENSE.md)) requires League Toolkit's signature to be removed when they are distributed with another program, and allows signing them with your own certificate. The build first checks that the download is the genuine signed file, then removes that signature. LolSikins does not claim to be official or affiliated with League Toolkit.
+- LolSikins does not distribute League Toolkit's patcher. It uses the copy in the user's own LTK Manager installation, unchanged and in place, so its license ([LTK-PATCHER-LICENSE.md](https://github.com/LeagueToolkit/ltk-manager/blob/main/LTK-PATCHER-LICENSE.md)) is respected. LolSikins does not claim to be official or affiliated with League Toolkit.
 
 ### Our own signature (optional)
 
-When the `SIGNING_CERT` and `SIGNING_PASSWORD` secrets exist, the build signs `LolSikins.exe`, the tools and the patcher with that certificate. Without them the package is unsigned. The certificate is self-signed, so Windows still shows "unknown publisher"; the signature only shows who distributed the files.
+When the `SIGNING_CERT` and `SIGNING_PASSWORD` secrets exist, the build signs `LolSikins.exe` and the tools with that certificate. Without them the package is unsigned. The certificate is self-signed, so Windows still shows "unknown publisher"; the signature only shows who distributed the files.
 
 One-time setup, in PowerShell on Windows:
 
@@ -77,12 +82,7 @@ Then in the repository go to **Settings → Secrets and variables → Actions �
 
 ## When the patcher expires
 
-The patcher has an end-of-life date. When it is reached the program shows "The patcher reached its end of life". Then:
-
-1. In the repository press **Actions → Build Windows → Run workflow**. The build fetches the patcher of the latest official LTK Manager release.
-2. Download the new release zip and extract it over the old folder (installed skins stay in `installed/`).
-
-`version.txt` in the package tells which patcher version it contains.
+The patcher has an end-of-life date. When it is reached the program shows "The patcher reached its end of life". Update [LTK Manager](https://github.com/LeagueToolkit/ltk-manager/releases) to its latest release and LolSikins picks up the new patcher automatically.
 
 ## Skin store
 

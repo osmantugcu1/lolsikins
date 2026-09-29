@@ -123,7 +123,7 @@ QtObject {
         "errCanceled": [ "Download canceled.", "İndirme iptal edildi.", "Daxistin hat betalkirin." ],
 
         // Errors from the patcher
-        "errPatcherMissing": [ "The patcher was not found (the patcher folder is missing). Extract the whole LolSikins zip again. If it disappears again, your antivirus removed it.", "Patcher bulunamadı (patcher klasörü eksik). LolSikins zip'ini baştan, eksiksiz çıkar. Yine kaybolursa antivirüs silmiş demektir.", "Patcher nehat dîtin (peldanka patcher tune ye). Zip'a LolSikins dîsa bi tevahî veke. Ger dîsa winda bibe, antîvîrusê ew jê biriye." ],
+        "errPatcherMissing": [ "The patcher was not found. Install LTK Manager (github.com/LeagueToolkit/ltk-manager/releases); LolSikins uses its patcher.", "Patcher bulunamadı. LTK Manager'ı kur (github.com/LeagueToolkit/ltk-manager/releases); LolSikins onun patcher'ını kullanır.", "Patcher nehat dîtin. LTK Manager saz bike (github.com/LeagueToolkit/ltk-manager/releases); LolSikins patchera wê bi kar tîne." ],
         "errPatcherExited": [ "The patcher closed unexpectedly, antivirus may have blocked it. %1", "Patcher beklenmedik şekilde kapandı, antivirüs engellemiş olabilir. %1", "Patcher bi awayekî nehêvî hat girtin, dibe ku antîvîrusê asteng kiribe. %1" ],
         "errPatcherFailed": [ "The patcher could not attach to the game: %1", "Patcher oyuna bağlanamadı: %1", "Patcher nikarî bi lîstikê ve girê bide: %1" ],
         "errPatcherScan": [ "A skin failed the anti-skinhack scan, so skins were stopped: %1", "Bir skin anti-skinhack taramasından geçemedi, skinler durduruldu: %1", "Skinek di kontrola dij-skinhackê de derbas nebû, skin hatin rawestandin: %1" ],

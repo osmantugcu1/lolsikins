@@ -35,6 +35,28 @@ static QString patcherMessage(QString key, QStringList args = {}) {
     return args.join(QChar(0x1f));
 }
 
+// The patcher is used from the user's own LTK Manager installation when it is present, because that copy is the
+// genuine signed release and attaches to the game reliably. A copy bundled next to LolSikins is only a fallback.
+static QString findPatcherHost(QString const& prog) {
+    QStringList candidates;
+#ifdef _WIN32
+    for (auto const& base : {qEnvironmentVariable("ProgramFiles"),
+                             qEnvironmentVariable("ProgramW6432"),
+                             qEnvironmentVariable("LOCALAPPDATA") + "/Programs"}) {
+        if (!base.isEmpty() && base != "/Programs") {
+            candidates.append(QDir::fromNativeSeparators(base) + "/LTK Manager/ltk_patcher_host.exe");
+        }
+    }
+#endif
+    candidates.append(prog + PATCHER_HOST_EXE);
+    for (auto const& candidate : candidates) {
+        if (QFileInfo::exists(candidate)) {
+            return candidate;
+        }
+    }
+    return {};
+}
+
 CSLOLToolsImpl::CSLOLToolsImpl(QObject* parent) : QObject(parent), prog_(QCoreApplication::applicationDirPath()) {
     logFile_ = new QFile(prog_ + "/log.txt", this);
     logFile_->open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Unbuffered);
@@ -684,9 +706,9 @@ void CSLOLToolsImpl::runTool(QStringList args, std::function<void(int code, QPro
 // "status <ts> <state> <msg>" and "dll <ts> <pid> <tid> <level> <msg>" lines on stdout, and keeps scanning for the
 // next game after one exits.
 void CSLOLToolsImpl::runPatcher(QString overlayDir, bool debugPatcher, bool skinhackScan) {
-    auto exe = prog_ + PATCHER_HOST_EXE;
-    if (!QFileInfo::exists(exe)) {
-        doReportError("Patcher", patcherMessage("errPatcherMissing"), exe);
+    auto exe = findPatcherHost(prog_);
+    if (exe.isEmpty()) {
+        doReportError("Patcher", patcherMessage("errPatcherMissing"), prog_ + PATCHER_HOST_EXE);
         setState(CSLOLState::StateIdle);
         return;
     }
