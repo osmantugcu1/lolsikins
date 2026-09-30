@@ -47,6 +47,8 @@ signals:
     void refreshed(QJsonObject mods);
     void updatedMods(QJsonArray mods);
     void reportError(QString name, QString message, QString stack_trace);
+    void voiceProgress(QString line);
+    void voiceFinished(bool ok, QString message);
 
     void changeLeaguePath(QString newLeaguePath);
     void changeBlacklist(bool blacklist);
@@ -67,6 +69,8 @@ signals:
     void removeModWads(QString modFileName, QJsonArray wads);
     void refreshMods();
     void runDiag();
+    void buildVoice(QString locale, QString name);
+    void cancelVoice();
 
 public slots:
     CSLOLToolsImpl::CSLOLState getState();

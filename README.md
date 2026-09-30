@@ -11,6 +11,7 @@ A custom skin manager for League of Legends with a built-in skin store. Skins on
 - **Skin store:** reads a GitHub repository of `.fantome` files, lists the skins and their chromas by champion, and installs the ones you pick with one click. It opens on `bettie9/LeagueSkins` and works with any other repository, private ones included.
 - **Auto-update:** when a skin changes in the repository, the installed copy is updated for you.
 - **Simple controls:** turn skins on and off, enable them all at once, search, or import your own `.fantome` files.
+- **Voice language:** play with Japanese, Korean, Spanish or any of 21 voice languages while the text stays in your game's language.
 - **Neon interface** in English, Turkish and Kurdish (Kurmanji), with four color themes.
 - **Optional anti-skinhack scan** that stops skins which fail the scan (off by default because it can cost FPS).
 
@@ -36,6 +37,22 @@ The patcher in the `patcher` folder is League Toolkit's, from the [LTK Manager](
 - **My antivirus or Windows complains.** The patcher attaches to the game, which antivirus software often dislikes, and LolSikins is not signed by a trusted publisher. Its full source code is in this repository and in every download.
 - **"The patcher was not found."** Your antivirus probably deleted the `patcher` folder. Extract the whole zip again.
 - **Skins do not show up in game.** Look at `log.txt` next to `LolSikins.exe`. If it says the patcher reached its end of life, rebuild (see below).
+
+## Voice language
+
+League only lets you pick one language for both voices and text. LolSikins can change just the voices:
+
+1. Open the **settings**, pick a language under **Voice language** and press **Download**.
+2. LolSikins downloads that language's voice files from Riot's own servers (about 4 GB) and adds them to your list as a mod, already turned on.
+3. Press **START**. Champions, announcers and other voices speak the chosen language; text, menus and banners stay as they are.
+
+How it works: every language keeps its voice lines in separate files (`Champions/Ahri.ja_JP.wad.client`, `Maps/Shipping/Map11.ja_JP.wad.client` and so on), and all of them use the same file paths inside. The voice pack is the chosen language's files saved under your game language's names, applied like any other mod. Text lives in other files (`Localized/Global`, `UI`) that are never touched, and LoL's own settings are not changed.
+
+- Turn the voice mod off or delete it to go back to your normal voices.
+- Download again after big patches so new skins and champions get their voices too.
+- A cancelled download continues where it stopped the next time.
+- A skin that brings its own voice lines wins over the voice pack for that champion.
+- Avoid downloading during a match: it uses your connection.
 
 ## Rules
 

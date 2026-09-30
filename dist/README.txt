@@ -21,6 +21,8 @@ Good to know
 - Use fan-made skins only. Do not use copies of Riot's paid skins or mods that give an advantage in game.
 - If you enter a GitHub token for a private skin repository, it is saved in plain text in config.ini. Keep this
   folder to yourself.
+- Voice language: in the settings you can download another language's voices (about 4 GB, from Riot's servers).
+  Only the voices change, text stays in your game's language. The pack shows up as a mod you can turn off.
 - Antivirus software may delete the files in the "patcher" folder. Skins stop working then; extract the zip again.
 - If something goes wrong, look at log.txt next to LolSikins.exe.
 

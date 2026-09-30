@@ -11,7 +11,7 @@ mod-tools <command> [args] [flags]
 ```
 
 Commands:
-- `addwad`, `copy`, `export`, `import`, `mkoverlay`, `runoverlay`
+- `addwad`, `copy`, `export`, `import`, `mkoverlay`, `mkvoice`, `runoverlay`
 
 Common flags:
 - `--game:<path>`: Path to the game folder. Enables rebasing against the game WADs and filtering.
@@ -195,3 +195,26 @@ mod-tools runoverlay ./Overlay ./overlay.ini --game:/games/LoL --opts:configless
 - `import` detects WAD sources by filename extension or directory structure (`data`/`data2`/`levels`/`assets`/`OBSIDIAN_PACKED_MAPPING.txt`).
 
 
+
+---
+
+### mkvoice
+
+Builds a voice language pack: downloads the voice-over WADs (`Champions/*` and `Maps/Shipping/*`) of another game locale from Riot's CDN and saves them under the game's own locale names, as a mod.
+
+```bash
+mod-tools mkvoice <ll_CC> <dst_mod_dir> --game:<path> [--work:<dir>] [--name:<mod name>] [--jobs:<n>] [--noTFT]
+                  [--manifest:<url or file>] [--bundles:<url>]
+```
+
+- `<ll_CC>`: target voice locale, e.g. `ja_JP`, `ko_KR`, `es_MX`.
+- `<dst_mod_dir>`: mod folder to create or replace (`META/info.json` and `WAD/*.wad.client`).
+- `--game:<path>`: the `Game` folder; its champion WADs tell which locale the game uses.
+- `--work:<dir>`: working folder; finished files stay there so an interrupted build resumes. Defaults to `<dst_mod_dir>.voice`.
+- `--name:<name>`: display name written to `info.json`.
+- `--jobs:<n>`: parallel downloads (default 4).
+- `--manifest:`/`--bundles:`: use another release manifest (URL or local file) and bundle location instead of the live game release from Riot's patch service. Mostly for testing.
+
+Prints `Voice progress: <done>/<total> MB, <done>/<count> files` while downloading.
+
+`mkoverlay` also takes `--under:<name>/...`: mods listed there are merged first and give way to any other mod that changes the same files, without a conflict error. LolSikins passes its voice pack this way.

@@ -52,6 +52,8 @@ signals:
     void refreshed(QJsonObject mods);
     void updatedMods(QJsonArray mods);
     void reportError(QString name, QString message, QString stack_trace);
+    void voiceProgress(QString line);
+    void voiceFinished(bool ok, QString message);
 
 public slots:
     void changeLeaguePath(QString newLeaguePath);
@@ -69,6 +71,8 @@ public slots:
     void makeMod(QString fileName, QJsonObject infoData, QString image);
     void refreshMods();
     void runDiag();
+    void buildVoice(QString locale, QString name);
+    void cancelVoice();
 
     void startEditMod(QString fileName);
     void changeModInfo(QString fileName, QJsonObject infoData, QString image);
@@ -85,6 +89,9 @@ private:
     QLockFile* lockfile_ = nullptr;
     // The patcher host that applies the overlay to the game.
     QProcess* hostProcess_ = nullptr;
+    // mod-tools mkvoice, which runs next to everything else until the voice pack is complete.
+    QProcess* voiceProcess_ = nullptr;
+    bool voiceCanceled_ = false;
     bool hostStopping_ = false;
     QString lastHostError_ = "";
     QString prog_ = "";

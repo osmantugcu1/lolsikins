@@ -44,8 +44,14 @@ add_library(cslol-lib STATIC
     lib/lol/patcher/utility/process.hpp
     lib/lol/patcher/utility/process_macos.cpp
 
+    lib/lol/rman/download.cpp
+    lib/lol/rman/download.hpp
+    lib/lol/rman/manifest.cpp
+    lib/lol/rman/manifest.hpp
     lib/lol/utility/cli.hpp
     lib/lol/utility/cli.cpp
+    lib/lol/utility/http.cpp
+    lib/lol/utility/http.hpp
     lib/lol/utility/magic.cpp
     lib/lol/utility/magic.hpp
     lib/lol/utility/zip.cpp
@@ -72,6 +78,9 @@ endif()
 target_compile_definitions(cslol-lib PUBLIC -D_CRT_SECURE_NO_WARNINGS) # lmao, fuck off
 target_link_libraries(cslol-lib PUBLIC fmt fmtlog)
 target_link_libraries(cslol-lib PRIVATE libdeflate zstd xxhash miniz)
+if (WIN32)
+    target_link_libraries(cslol-lib PRIVATE winhttp)
+endif()
 target_include_directories(cslol-lib PUBLIC lib/)
 
 add_executable(mod-tools

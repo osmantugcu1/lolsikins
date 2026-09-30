@@ -29,6 +29,9 @@
 #    define PATCHER_HOST_EXE "/patcher/ltk_patcher_host"
 #endif
 
+// Mod folder of the voice language pack built by mod-tools mkvoice.
+#define VOICE_MOD "LolSikins Voice"
+
 // Patcher errors are sent to QML as translation keys, arguments separated by \x1f.
 static QString patcherMessage(QString key, QStringList args = {}) {
     args.prepend(key);
@@ -513,6 +516,80 @@ void CSLOLToolsImpl::runDiag() {
     }
 }
 
+// Builds the voice pack with mod-tools mkvoice. It does not take the busy state: the pack only lands in installed/ once
+// it is complete, so skins can still be installed and applied while it downloads.
+void CSLOLToolsImpl::buildVoice(QString locale, QString name) {
+    if (voiceProcess_ != nullptr) {
+        return;
+    }
+    if (game_.isEmpty()) {
+        emit voiceFinished(false, "voiceNeedGame");
+        return;
+    }
+    voiceCanceled_ = false;
+    auto process = voiceProcess_ = new QProcess(this);
+    connect(process, &QProcess::readyReadStandardOutput, this, [=, this]() {
+        process->setReadChannel(QProcess::ProcessChannel::StandardOutput);
+        while (process->canReadLine()) {
+            auto line = QString::fromUtf8(process->readLine()).trimmed();
+            if (!line.startsWith("Voice progress:")) {
+                logFile_->write("[voice] " + line.toUtf8() + "\n");
+            }
+            emit voiceProgress(line);
+        }
+    });
+    connect(process,
+            static_cast<void (QProcess::*)(int exitCode, QProcess::ExitStatus exitStatus)>(&QProcess::finished),
+            this,
+            [=, this](int exitCode, QProcess::ExitStatus exitStatus) {
+                auto error = QString::fromUtf8(process->readAllStandardError()).trimmed();
+                if (!error.isEmpty()) {
+                    logFile_->write("[voice] " + error.toUtf8() + "\n");
+                }
+                voiceProcess_ = nullptr;
+                process->deleteLater();
+                if (voiceCanceled_) {
+                    emit voiceFinished(false, "voiceCanceled");
+                } else if (exitCode == 0 && exitStatus == QProcess::NormalExit) {
+                    emit voiceFinished(true, "");
+                } else {
+                    // mod-tools ends its stderr with "error: <message>".
+                    auto message = error.split('\n').last();
+                    if (message.startsWith("error: ")) {
+                        message = message.mid(7);
+                    }
+                    emit voiceFinished(false, message.isEmpty() ? QString("exit code %1").arg(exitCode) : message);
+                }
+            });
+    connect(process, &QProcess::errorOccurred, this, [=, this](QProcess::ProcessError error) {
+        if (error == QProcess::FailedToStart) {
+            auto message = process->errorString();
+            logFile_->write("[voice] " + message.toUtf8() + "\n");
+            voiceProcess_ = nullptr;
+            process->deleteLater();
+            emit voiceFinished(false, message);
+        }
+    });
+    logFile_->write("[voice] building " + locale.toUtf8() + "\n");
+    process->start(prog_ + MOD_TOOLS_EXE,
+                   {
+                       "mkvoice",
+                       locale,
+                       prog_ + "/installed/" + VOICE_MOD,
+                       "--game:" + game_,
+                       "--work:" + prog_ + "/voice-build",
+                       "--name:" + name,
+                       blacklist_ ? "--noTFT" : "",
+                   });
+}
+
+void CSLOLToolsImpl::cancelVoice() {
+    if (voiceProcess_ != nullptr) {
+        voiceCanceled_ = true;
+        voiceProcess_->kill();
+    }
+}
+
 void CSLOLToolsImpl::saveProfile(QString name,
                                  QJsonObject mods,
                                  bool run,
@@ -538,6 +615,8 @@ void CSLOLToolsImpl::saveProfile(QString name,
                 prog_ + "/profiles/" + name,
                 "--game:" + game_,
                 "--mods:" + mods.keys().join('/'),
+                // The voice pack gives way to any skin that brings its own voice lines.
+                QString("--under:") + VOICE_MOD,
                 blacklist_ ? "--noTFT" : "",
                 skipConflict ? "--ignoreConflict" : "",
             },

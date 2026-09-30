@@ -31,6 +31,7 @@ ApplicationWindow {
         property alias neonPreset: cslolDialogSettings.neonPreset
         property alias verbosePatcher: cslolDialogSettings.debugPatcher
         property alias skinhackScan: cslolDialogSettings.skinhackScan
+        property alias voiceLanguage: cslolDialogSettings.voiceLanguage
 
         property alias removeUnknownNames: cslolDialogEditMod.removeUnknownNames
         property alias lastZipDirectory: cslolDialogOpenZipFantome.folder
@@ -51,6 +52,13 @@ ApplicationWindow {
 
     property bool patcherRunning: cslolTools.state === CSLOLTools.StateRunning
     property bool isBussy: cslolTools.state !== CSLOLTools.StateIdle
+    // A voice pack finished while the tools were busy; show it once they are idle again.
+    property bool voicePending: false
+    onIsBussyChanged: {
+        if (!isBussy && voicePending) {
+            cslolTools.refreshMods()
+        }
+    }
     property var validName: new RegExp(/[\p{L}\p{M}\p{Pd}\p{Z}\p{N}\w]{3,50}/u)
     property var validVersion: new RegExp(/([0-9]{1,3})(\.[0-9]{1,3}){0,3}/)
     property var validUrl: new RegExp(/^(http(s)?:\/\/).+$/u)
@@ -215,6 +223,15 @@ ApplicationWindow {
         onIgnorebadChanged: function() {
             cslolTools.changeIgnorebad(ignorebad)
         }
+
+        onBuildVoice: function(locale, name) {
+            voiceBusy = true
+            voiceFraction = 0
+            voiceStatus = I18n.t("voicePreparing")
+            cslolTools.buildVoice(locale, I18n.t("voiceModName").arg(name))
+        }
+
+        onCancelVoice: cslolTools.cancelVoice()
     }
 
     CSLOLModsView {
@@ -418,6 +435,34 @@ ApplicationWindow {
         onRefreshed: function(mods) {
             cslolModsView.refreshedMods(mods)
             cslolDialogSkinStore.setInstalled(mods)
+            if (voicePending && "LolSikins Voice" in mods) {
+                voicePending = false
+                cslolModsView.enableMod("LolSikins Voice")
+            }
+        }
+        onVoiceProgress: function(line) {
+            let progress = line.match(/^Voice progress: (\d+)\/(\d+) MB, (\d+)\/(\d+) files/)
+            if (progress) {
+                cslolDialogSettings.voiceFraction = progress[2] > 0 ? progress[1] / progress[2] : 0
+                cslolDialogSettings.voiceStatus = I18n.t("voiceProgress")
+                    .arg(progress[1]).arg(progress[2]).arg(progress[3]).arg(progress[4])
+            }
+        }
+        onVoiceFinished: function(ok, message) {
+            cslolDialogSettings.voiceBusy = false
+            if (ok) {
+                cslolDialogSettings.voiceStatus = I18n.t("voiceDone")
+                voicePending = true
+                if (!isBussy) {
+                    cslolTools.refreshMods()
+                }
+            } else if (message.indexOf("already uses") !== -1) {
+                cslolDialogSettings.voiceStatus = I18n.t("voiceSame")
+            } else if (message === "voiceCanceled" || message === "voiceNeedGame") {
+                cslolDialogSettings.voiceStatus = I18n.t(message)
+            } else {
+                cslolDialogSettings.voiceStatus = I18n.t("voiceFailed").arg(message)
+            }
         }
         onUpdatedMods: function(mods) {
             cslolDialogUpdateMods.updatedMods = mods

@@ -7,6 +7,35 @@ QtObject {
 
     readonly property var languages: [ "English", "Türkçe", "Kurdî (Kurmancî)" ]
 
+    // Game locales that ship their own voice-over, with their names in each interface language.
+    readonly property var voiceLanguages: [
+        { "code": "ja_JP", "names": [ "Japanese", "Japonca", "Japonî" ] },
+        { "code": "ko_KR", "names": [ "Korean", "Korece", "Koreyî" ] },
+        { "code": "zh_CN", "names": [ "Chinese (China)", "Çince (Çin)", "Çînî (Çîn)" ] },
+        { "code": "zh_TW", "names": [ "Chinese (Taiwan)", "Çince (Tayvan)", "Çînî (Taywan)" ] },
+        { "code": "en_US", "names": [ "English", "İngilizce", "Îngilîzî" ] },
+        { "code": "es_ES", "names": [ "Spanish (Spain)", "İspanyolca (İspanya)", "Spanî (Spanya)" ] },
+        { "code": "es_MX", "names": [ "Spanish (Latin America)", "İspanyolca (Latin Amerika)", "Spanî (Amerîkaya Latîn)" ] },
+        { "code": "fr_FR", "names": [ "French", "Fransızca", "Fransî" ] },
+        { "code": "de_DE", "names": [ "German", "Almanca", "Almanî" ] },
+        { "code": "it_IT", "names": [ "Italian", "İtalyanca", "Îtalî" ] },
+        { "code": "pt_BR", "names": [ "Portuguese (Brazil)", "Portekizce (Brezilya)", "Portugalî (Brezîlya)" ] },
+        { "code": "ru_RU", "names": [ "Russian", "Rusça", "Rûsî" ] },
+        { "code": "pl_PL", "names": [ "Polish", "Lehçe", "Polonî" ] },
+        { "code": "tr_TR", "names": [ "Turkish", "Türkçe", "Tirkî" ] },
+        { "code": "cs_CZ", "names": [ "Czech", "Çekçe", "Çekî" ] },
+        { "code": "el_GR", "names": [ "Greek", "Yunanca", "Yûnanî" ] },
+        { "code": "hu_HU", "names": [ "Hungarian", "Macarca", "Macarî" ] },
+        { "code": "ro_RO", "names": [ "Romanian", "Rumence", "Romanî" ] },
+        { "code": "ar_AE", "names": [ "Arabic", "Arapça", "Erebî" ] },
+        { "code": "th_TH", "names": [ "Thai", "Tayca", "Tayî" ] },
+        { "code": "vi_VN", "names": [ "Vietnamese", "Vietnamca", "Viyetnamî" ] }
+    ]
+
+    function voiceName(entry) {
+        return entry.names[language] || entry.names[0]
+    }
+
     readonly property var strings: ({
         // Header
         "skinsActive": [ "● Skins are active, you can join a game", "● Skinler aktif, oyuna girebilirsin", "● Skin çalak in, tu dikarî bikevî lîstikê" ],
@@ -56,6 +85,18 @@ QtObject {
         "settingsTitle": [ "Settings", "Ayarlar", "Mîheng" ],
         "sectionGame": [ "GAME", "OYUN", "LÎSTIK" ],
         "sectionApp": [ "APP", "UYGULAMA", "SEPAN" ],
+        "sectionVoice": [ "VOICE LANGUAGE", "SES DİLİ", "ZIMANÊ DENG" ],
+        "voiceLanguage": [ "Voice language", "Ses dili", "Zimanê deng" ],
+        "voiceDownload": [ "DOWNLOAD", "İNDİR", "DAXE" ],
+        "voiceHint": [ "Voices of the chosen language are downloaded from Riot's servers (about 4 GB) and added to your list as a mod. Only the voices change, text stays in the game's language. Turn the mod off or delete it to go back, and download again after big patches. Avoid downloading during a match.", "Seçilen dilin sesleri Riot'un sunucularından indirilir (yaklaşık 4 GB) ve listene mod olarak eklenir. Sadece sesler değişir, yazılar oyunun dilinde kalır. Geri dönmek için modu kapat ya da sil, büyük yamalardan sonra yeniden indir. Maç sırasında indirmemeye çalış.", "Dengên zimanê hilbijartî ji serverên Riot tên daxistin (nêzî 4 GB) û wek mod li lîsteya te tên zêdekirin. Tenê deng diguherin, nivîs bi zimanê lîstikê dimînin. Ji bo vegerê modê bigire an jê bibe, piştî nûkirinên mezin dîsa daxe. Di dema maçê de daxistinê neke." ],
+        "voicePreparing": [ "Reading the game and Riot's file list…", "Oyun ve Riot'un dosya listesi okunuyor…", "Lîstik û lîsteya pelên Riot tê xwendin…" ],
+        "voiceProgress": [ "Downloading: %1 / %2 MB (%3 / %4 files)", "İndiriliyor: %1 / %2 MB (%3 / %4 dosya)", "Tê daxistin: %1 / %2 MB (%3 / %4 pel)" ],
+        "voiceDone": [ "Voice pack ready and turned on. Press START to play with it.", "Ses paketi hazır ve açıldı. Kullanmak için BAŞLAT'a bas.", "Pakêta deng amade ye û vekirî ye. Ji bo bikaranînê DEST PÊ BIKE bitikîne." ],
+        "voiceCanceled": [ "Canceled. Downloading again continues where it stopped.", "İptal edildi. Tekrar indirirsen kaldığı yerden devam eder.", "Hat betalkirin. Ger dîsa daxî, ji cihê ku lê sekinî berdewam dike." ],
+        "voiceFailed": [ "Voice pack failed: %1", "Ses paketi oluşturulamadı: %1", "Pakêta deng nehat çêkirin: %1" ],
+        "voiceNeedGame": [ "Pick the game folder first.", "Önce oyun klasörünü seç.", "Pêşî peldanka lîstikê hilbijêre." ],
+        "voiceSame": [ "The game already speaks this language.", "Oyun zaten bu dilde konuşuyor.", "Lîstik jixwe bi vî zimanî diaxive." ],
+        "voiceModName": [ "Voice: %1", "Ses: %1", "Deng: %1" ],
         "sectionHelp": [ "HELP", "YARDIM", "ALÎKARÎ" ],
         "gameFolder": [ "Game folder", "Oyun klasörü", "Peldanka lîstikê" ],
         "gameFolderNone": [ "Not selected", "Seçilmedi", "Nehatiye hilbijartin" ],

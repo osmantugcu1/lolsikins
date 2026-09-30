@@ -21,9 +21,16 @@ NeonDialog {
     property alias debugPatcher: debugPatcherCheck.checked
     property alias language: languageBox.currentIndex
     property alias neonPreset: themeBox.currentIndex
+    property alias voiceLanguage: voiceBox.currentIndex
+    // Voice pack build state, driven by main.qml.
+    property bool voiceBusy: false
+    property string voiceStatus: ""
+    property real voiceFraction: 0
 
     signal changeGamePath()
     signal runDiag()
+    signal buildVoice(string locale, string name)
+    signal cancelVoice()
 
     component SectionTitle: Text {
         Layout.fillWidth: true
@@ -166,6 +173,92 @@ NeonDialog {
             SettingRow {
                 label: I18n.t("skinhackScan")
                 NeonSwitch { id: skinhackScanCheck; checked: false }
+            }
+
+            SectionTitle { text: I18n.t("sectionVoice") }
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: voiceContent.implicitHeight + 28
+                radius: Neon.radiusSmall
+                color: Neon.alpha(Neon.surface, 0.8)
+                border.width: 1
+                border.color: Neon.border
+                Column {
+                    id: voiceContent
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.topMargin: 14
+                    anchors.leftMargin: 16
+                    anchors.rightMargin: 12
+                    spacing: 10
+                    RowLayout {
+                        width: parent.width
+                        spacing: 12
+                        Text {
+                            Layout.fillWidth: true
+                            text: I18n.t("voiceLanguage")
+                            color: Neon.text
+                            font.pixelSize: 14
+                            elide: Text.ElideRight
+                        }
+                        NeonComboBox {
+                            id: voiceBox
+                            Layout.preferredWidth: 240
+                            model: I18n.voiceLanguages
+                            labelOf: function(entry) { return I18n.voiceName(entry) }
+                            enabled: !voiceBusy
+                            currentIndex: 0
+                        }
+                        NeonButton {
+                            implicitHeight: 34
+                            outline: voiceBusy
+                            danger: voiceBusy
+                            glyph: voiceBusy ? "" : ""
+                            text: voiceBusy ? I18n.t("cancel") : I18n.t("voiceDownload")
+                            onClicked: {
+                                if (voiceBusy) {
+                                    cslolDialogSettings.cancelVoice()
+                                } else {
+                                    let entry = I18n.voiceLanguages[voiceBox.currentIndex]
+                                    cslolDialogSettings.buildVoice(entry.code, I18n.voiceName(entry))
+                                }
+                            }
+                        }
+                    }
+                    Rectangle {
+                        width: parent.width
+                        height: 6
+                        visible: voiceBusy
+                        radius: 3
+                        color: Neon.alpha(Neon.primary, 0.15)
+                        Rectangle {
+                            width: parent.width * Math.max(0, Math.min(1, voiceFraction))
+                            height: parent.height
+                            radius: 3
+                            gradient: Gradient {
+                                orientation: Gradient.Horizontal
+                                GradientStop { position: 0.0; color: Neon.primary }
+                                GradientStop { position: 1.0; color: Neon.secondary }
+                            }
+                        }
+                    }
+                    Text {
+                        width: parent.width
+                        visible: voiceStatus !== ""
+                        text: voiceStatus
+                        color: Neon.text
+                        font.pixelSize: 12
+                        wrapMode: Text.Wrap
+                    }
+                    Text {
+                        width: parent.width
+                        text: I18n.t("voiceHint")
+                        color: Neon.textMuted
+                        font.pixelSize: 12
+                        wrapMode: Text.Wrap
+                    }
+                }
             }
 
             SectionTitle { text: I18n.t("sectionHelp") }

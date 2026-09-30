@@ -185,6 +185,18 @@ ColumnLayout {
         return -1;
     }
 
+    // Turns one mod on, used when a freshly built voice pack is installed.
+    function enableMod(fileName) {
+        for (let model of [cslolModsViewModel, cslolModsViewModel2]) {
+            for (let i = 0; i < model.count; i++) {
+                if (model.get(i)["FileName"] === fileName && !model.get(i)["Enabled"]) {
+                    model.setProperty(i, "Enabled", true)
+                }
+            }
+        }
+        checkedUpdate()
+    }
+
     function checkAll(doEnable) {
         checkAllInternal(doEnable)
         checkedUpdate()

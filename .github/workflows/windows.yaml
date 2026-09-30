@@ -25,6 +25,22 @@ jobs:
         cd build
         cmake -G "NMake Makefiles" "-DCMAKE_PREFIX_PATH:PATH=C:/qt5.15.18-x86_64-msvc-static" "-DCMAKE_MSVC_RUNTIME_LIBRARY:STRING=MultiThreaded" "-DCMAKE_BUILD_TYPE:STRING=Release" ..
         cmake --build .
+    # Downloads one small voice WAD from Riot's CDN for a fake game folder, the same path the voice language setting
+    # takes. It does not block the release when Riot's services are unreachable.
+    - name: "Voice download test"
+      shell: pwsh
+      continue-on-error: true
+      run: |
+        $game = Join-Path $env:RUNNER_TEMP "voicegame"
+        New-Item -ItemType Directory -Force "$game/DATA/FINAL/Champions" | Out-Null
+        Set-Content "$game/DATA/FINAL/Champions/Alistar.en_US.wad.client" "placeholder"
+        $dst = Join-Path $env:RUNNER_TEMP "voicemod"
+        & build/cslol-tools/mod-tools.exe mkvoice ja_JP $dst "--game:$game" "--work:$env:RUNNER_TEMP/voicework"
+        if ($LASTEXITCODE -ne 0) { throw "mkvoice failed" }
+        $bytes = [IO.File]::ReadAllBytes("$dst/WAD/Alistar.en_US.wad.client")
+        Write-Host "voice WAD: $($bytes.Length) bytes, magic $([Text.Encoding]::ASCII.GetString($bytes, 0, 2))"
+        if ([Text.Encoding]::ASCII.GetString($bytes, 0, 2) -ne "RW") { throw "not a WAD" }
+        Get-Content "$dst/META/info.json"
     - name: "Package"
       shell: bash
       run: |
