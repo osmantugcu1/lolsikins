@@ -26,6 +26,8 @@ NeonDialog {
     property bool voiceBusy: false
     property string voiceStatus: ""
     property real voiceFraction: 0
+    // Codes of the languages that have a voice pack in the mod list.
+    property var voiceInstalled: []
 
     signal changeGamePath()
     signal runDiag()
@@ -206,16 +208,20 @@ NeonDialog {
                             id: voiceBox
                             Layout.preferredWidth: 240
                             model: I18n.voiceLanguages
-                            labelOf: function(entry) { return I18n.voiceName(entry) }
+                            labelOf: function(entry) {
+                                return I18n.voiceName(entry) + (voiceInstalled.indexOf(entry.code) !== -1 ? "  ✓" : "")
+                            }
                             enabled: !voiceBusy
                             currentIndex: 0
                         }
                         NeonButton {
+                            // A language that is already downloaded is downloaded again as an update.
+                            property bool installed: voiceInstalled.indexOf((I18n.voiceLanguages[voiceBox.currentIndex] || {}).code) !== -1
                             implicitHeight: 34
                             outline: voiceBusy
                             danger: voiceBusy
-                            glyph: voiceBusy ? "" : ""
-                            text: voiceBusy ? I18n.t("cancel") : I18n.t("voiceDownload")
+                            glyph: voiceBusy ? "\uf00d" : installed ? "\uf021" : "\uf019"
+                            text: voiceBusy ? I18n.t("cancel") : installed ? I18n.t("update") : I18n.t("voiceDownload")
                             onClicked: {
                                 if (voiceBusy) {
                                     cslolDialogSettings.cancelVoice()

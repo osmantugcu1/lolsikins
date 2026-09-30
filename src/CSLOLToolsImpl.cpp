@@ -10,6 +10,7 @@
 #include <QMap>
 #include <QMetaEnum>
 #include <QNetworkReply>
+#include <QRegularExpression>
 #include <QStandardPaths>
 #include <QThread>
 #include <QTimer>
@@ -29,7 +30,7 @@
 #    define PATCHER_HOST_EXE "/patcher/ltk_patcher_host"
 #endif
 
-// Mod folder of the voice language pack built by mod-tools mkvoice.
+// Voice language packs built by mod-tools mkvoice live in "LolSikins Voice <ll_CC>" mod folders, one per language.
 #define VOICE_MOD "LolSikins Voice"
 
 // Patcher errors are sent to QML as translation keys, arguments separated by \x1f.
@@ -58,6 +59,37 @@ static QString findPatcherHost(QString const& prog) {
         }
     }
     return {};
+}
+
+// Earlier versions kept a single voice pack in "LolSikins Voice", replaced by every download. It moves to the folder
+// of its language, and profiles that had it on keep it on.
+static void migrateVoicePack(QString const& prog) {
+    auto const legacy = prog + "/installed/" + VOICE_MOD;
+    auto info = QJsonObject();
+    if (QFile file(legacy + "/META/info.json"); file.open(QIODevice::ReadOnly)) {
+        info = QJsonDocument::fromJson(file.readAll()).object();
+    } else {
+        return;
+    }
+    // mkvoice starts the description with the language: "ja_JP voices over the game's en_US files. ..."
+    auto const locale = info["Description"].toString().section(' ', 0, 0);
+    if (!QRegularExpression("^[a-z]{2}_[A-Z]{2}$").match(locale).hasMatch()) {
+        return;
+    }
+    auto const name = QString(VOICE_MOD) + " " + locale;
+    if (QFileInfo::exists(prog + "/installed/" + name) || !QDir().rename(legacy, prog + "/installed/" + name)) {
+        return;
+    }
+    for (QDirIterator it(prog + "/profiles", {"*.profile"}, QDir::Files); it.hasNext();) {
+        QFile profile(it.next());
+        if (!profile.open(QIODevice::ReadOnly)) continue;
+        auto lines = QString::fromUtf8(profile.readAll()).split('\n');
+        profile.close();
+        if (auto index = lines.indexOf(QString(VOICE_MOD)); index != -1 && profile.open(QIODevice::WriteOnly)) {
+            lines[index] = name;
+            profile.write(lines.join('\n').toUtf8());
+        }
+    }
 }
 
 CSLOLToolsImpl::CSLOLToolsImpl(QObject* parent) : QObject(parent), prog_(QCoreApplication::applicationDirPath()) {
@@ -360,6 +392,7 @@ void CSLOLToolsImpl::init() {
         }
 
         setStatus("Load mods");
+        migrateVoicePack(prog_);
         QJsonObject mods;
         for (auto name : modList()) {
             auto info = modInfoRead(name);
@@ -516,8 +549,9 @@ void CSLOLToolsImpl::runDiag() {
     }
 }
 
-// Builds the voice pack with mod-tools mkvoice. It does not take the busy state: the pack only lands in installed/ once
-// it is complete, so skins can still be installed and applied while it downloads.
+// Builds the voice pack of one language with mod-tools mkvoice and reports the mod's folder name when it is done. It
+// does not take the busy state: the pack only lands in installed/ once it is complete, so skins can still be installed
+// and applied while it downloads.
 void CSLOLToolsImpl::buildVoice(QString locale, QString name) {
     if (voiceProcess_ != nullptr) {
         return;
@@ -526,6 +560,7 @@ void CSLOLToolsImpl::buildVoice(QString locale, QString name) {
         emit voiceFinished(false, "voiceNeedGame");
         return;
     }
+    auto const modName = QString(VOICE_MOD) + " " + locale;
     voiceCanceled_ = false;
     auto process = voiceProcess_ = new QProcess(this);
     connect(process, &QProcess::readyReadStandardOutput, this, [=, this]() {
@@ -551,7 +586,7 @@ void CSLOLToolsImpl::buildVoice(QString locale, QString name) {
                 if (voiceCanceled_) {
                     emit voiceFinished(false, "voiceCanceled");
                 } else if (exitCode == 0 && exitStatus == QProcess::NormalExit) {
-                    emit voiceFinished(true, "");
+                    emit voiceFinished(true, modName);
                 } else {
                     // mod-tools ends its stderr with "error: <message>".
                     auto message = error.split('\n').last();
@@ -575,7 +610,7 @@ void CSLOLToolsImpl::buildVoice(QString locale, QString name) {
                    {
                        "mkvoice",
                        locale,
-                       prog_ + "/installed/" + VOICE_MOD,
+                       prog_ + "/installed/" + modName,
                        "--game:" + game_,
                        "--work:" + prog_ + "/voice-build",
                        "--name:" + name,
@@ -608,6 +643,8 @@ void CSLOLToolsImpl::saveProfile(QString name,
         emit profileSaved(name, mods);
 
         setStatus("Write profile");
+        // Voice packs give way to any skin that brings its own voice lines.
+        auto voices = mods.keys().filter(QRegularExpression("^" VOICE_MOD "( |$)"));
         runTool(
             {
                 "mkoverlay",
@@ -615,8 +652,7 @@ void CSLOLToolsImpl::saveProfile(QString name,
                 prog_ + "/profiles/" + name,
                 "--game:" + game_,
                 "--mods:" + mods.keys().join('/'),
-                // The voice pack gives way to any skin that brings its own voice lines.
-                QString("--under:") + VOICE_MOD,
+                voices.isEmpty() ? QString() : "--under:" + voices.join('/'),
                 blacklist_ ? "--noTFT" : "",
                 skipConflict ? "--ignoreConflict" : "",
             },

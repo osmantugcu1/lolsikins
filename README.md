@@ -10,8 +10,9 @@ A custom skin manager for League of Legends with a built-in skin store. Skins on
 
 - **Skin store:** reads a GitHub repository of `.fantome` files, lists the skins and their chromas by champion, and installs the ones you pick with one click. It opens on `bettie9/LeagueSkins` and works with any other repository, private ones included.
 - **Auto-update:** when a skin changes in the repository, the installed copy is updated for you.
-- **Simple controls:** turn skins on and off, enable them all at once, search, or import your own `.fantome` files.
-- **Voice language:** play with Japanese, Korean, Spanish or any of 21 voice languages while the text stays in your game's language.
+- **Simple controls:** turn skins on and off, enable them all at once, or import your own `.fantome` files.
+- **Forgiving search** in the list and the store: words in any order, letters may be skipped (`ww` or `waw` finds Warwick, `phone malph` finds Malphite's KeypadPhone), best matches first.
+- **Voice language:** play with Japanese, Korean, Spanish or any of 21 voice languages while the text stays in your game's language. Keep several and switch between them in the list.
 - **Neon interface** in English, Turkish and Kurdish (Kurmanji), with four color themes.
 - **Optional anti-skinhack scan** that stops skins which fail the scan (off by default because it can cost FPS).
 
@@ -43,16 +44,19 @@ The patcher in the `patcher` folder is League Toolkit's, from the [LTK Manager](
 League only lets you pick one language for both voices and text. LolSikins can change just the voices:
 
 1. Open the **settings**, pick a language under **Voice language** and press **Download**.
-2. LolSikins downloads that language's voice files from Riot's own servers (about 4 GB) and adds them to your list as a mod, already turned on.
+2. LolSikins downloads that language's voice files from Riot's own servers (about 4 GB) and adds them to your list as their own card ("Voice: Japanese"), already turned on.
 3. Press **START**. Champions, announcers and other voices speak the chosen language; text, menus and banners stay as they are.
 
-How it works: every language keeps its voice lines in separate files (`Champions/Ahri.ja_JP.wad.client`, `Maps/Shipping/Map11.ja_JP.wad.client` and so on), and all of them use the same file paths inside. The voice pack is the chosen language's files saved under your game language's names, applied like any other mod. Text lives in other files (`Localized/Global`, `UI`) that are never touched, and LoL's own settings are not changed.
+Every language you download gets its own card at the top of the list, so you can keep several and switch between them:
 
-- Turn the voice mod off or delete it to go back to your normal voices.
-- Download again after big patches so new skins and champions get their voices too.
+- Only one voice language can be on at a time: turning one on turns the others off. Turn them all off to hear your game's own voices.
+- Downloaded languages have a ✓ in the settings list and an **Update** button. Update them after big patches so new skins and champions get their voices too.
+- Delete a voice card to free its space.
 - A cancelled download continues where it stopped the next time.
 - A skin that brings its own voice lines wins over the voice pack for that champion.
 - Avoid downloading during a match: it uses your connection.
+
+How it works: every language keeps its voice lines in separate files (`Champions/Ahri.ja_JP.wad.client`, `Maps/Shipping/Map11.ja_JP.wad.client` and so on), and all of them use the same file paths inside. A voice pack is the chosen language's files saved under your game language's names, applied like any other mod. Text lives in other files (`Localized/Global`, `UI`) that are never touched, and LoL's own settings are not changed.
 
 ## Rules
 
@@ -85,6 +89,8 @@ The patcher has an end-of-life date. When it is reached the program shows "The p
 ## Skin store
 
 The cart icon in the top bar opens the store. By default it reads `bettie9/LeagueSkins`. To use another repository, enter its address (`user/repo`), the branch and, for a private repository, a GitHub token, then press **Connect**. The program finds every `.fantome` file in the repository and lists them by champion. Only the skins you **Install** are downloaded.
+
+The search box takes words in any order and forgives skipped letters: `ww` or `waw` finds Warwick, `phone malph` finds KeypadPhone. The champion with the best match is listed first, and chromas stay under their skin.
 
 Suggested layout (not required):
 

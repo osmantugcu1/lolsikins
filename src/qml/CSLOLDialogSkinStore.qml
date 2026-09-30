@@ -3,6 +3,7 @@ import QtQuick.Layouts 1.12
 import QtQuick.Controls 2.15
 import customskinlol.tools 1.0
 import lolsikins.theme 1.0
+import "Search.js" as Search
 
 NeonDialog {
     id: cslolDialogSkinStore
@@ -93,8 +94,10 @@ NeonDialog {
     function applyFilter(keepScroll) {
         let scroll = skinsView.contentY
         let champion = championBox.currentIndex > 0 ? championBox.currentText : ""
-        let search = searchField.text.trim().toLowerCase()
-        skinsModel.clear()
+        // Matching skins stay grouped by champion in catalog order, so chromas stay under their skin; the champion
+        // with the best match comes first.
+        let groups = []
+        let groupOf = {}
         for (let i in allSkins) {
             let skin = allSkins[i]
             if (champion !== "" && skin.champion !== champion) {
@@ -103,10 +106,24 @@ NeonDialog {
             if (!chromaCheck.checked && skin.chroma) {
                 continue
             }
-            if (search !== "" && (skin.champion + " " + skin.name).toLowerCase().indexOf(search) === -1) {
+            let score = Search.score(searchField.text, skin.champion + " " + skin.name)
+            if (score === 0) {
                 continue
             }
-            skinsModel.append(skin)
+            let group = groupOf[skin.champion]
+            if (group === undefined) {
+                group = groupOf[skin.champion] = { "index": groups.length, "best": 0, "skins": [] }
+                groups.push(group)
+            }
+            group.best = Math.max(group.best, score)
+            group.skins.push(skin)
+        }
+        groups.sort((a, b) => b.best - a.best || a.index - b.index)
+        skinsModel.clear()
+        for (let group of groups) {
+            for (let skin of group.skins) {
+                skinsModel.append(skin)
+            }
         }
         if (keepScroll === true) {
             skinsView.forceLayout()

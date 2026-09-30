@@ -52,10 +52,10 @@ ApplicationWindow {
 
     property bool patcherRunning: cslolTools.state === CSLOLTools.StateRunning
     property bool isBussy: cslolTools.state !== CSLOLTools.StateIdle
-    // A voice pack finished while the tools were busy; show it once they are idle again.
-    property bool voicePending: false
+    // Voice pack that finished while the tools were busy; it is listed and turned on once they are idle again.
+    property string voicePending: ""
     onIsBussyChanged: {
-        if (!isBussy && voicePending) {
+        if (!isBussy && voicePending !== "") {
             cslolTools.refreshMods()
         }
     }
@@ -209,6 +209,7 @@ ApplicationWindow {
         id: cslolDialogSettings
         isBussy: window.isBussy
         gamePath: cslolTools.leaguePath
+        voiceInstalled: cslolModsView.voiceInstalled
 
         onRunDiag: cslolTools.runDiag()
 
@@ -435,9 +436,9 @@ ApplicationWindow {
         onRefreshed: function(mods) {
             cslolModsView.refreshedMods(mods)
             cslolDialogSkinStore.setInstalled(mods)
-            if (voicePending && "LolSikins Voice" in mods) {
-                voicePending = false
-                cslolModsView.enableMod("LolSikins Voice")
+            if (voicePending !== "" && voicePending in mods) {
+                cslolModsView.setModEnabled(voicePending, true)
+                voicePending = ""
             }
         }
         onVoiceProgress: function(line) {
@@ -448,11 +449,12 @@ ApplicationWindow {
                     .arg(progress[1]).arg(progress[2]).arg(progress[3]).arg(progress[4])
             }
         }
+        // On success the message is the voice pack's mod name.
         onVoiceFinished: function(ok, message) {
             cslolDialogSettings.voiceBusy = false
             if (ok) {
                 cslolDialogSettings.voiceStatus = I18n.t("voiceDone")
-                voicePending = true
+                voicePending = message
                 if (!isBussy) {
                     cslolTools.refreshMods()
                 }

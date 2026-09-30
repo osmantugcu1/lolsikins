@@ -25,6 +25,7 @@
         <file>CSLOLDialogSkinStore.qml</file>
         <file>NeonTheme.qml</file>
         <file>I18n.qml</file>
+        <file>Search.js</file>
         <file>NeonBackground.qml</file>
         <file>NeonButton.qml</file>
         <file>NeonIconButton.qml</file>

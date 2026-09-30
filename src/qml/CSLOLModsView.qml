@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Layouts 1.12
 import QtQuick.Controls 2.15
 import lolsikins.theme 1.0
+import "Search.js" as Search
 
 ColumnLayout {
     id: cslolModsView
@@ -16,6 +17,13 @@ ColumnLayout {
     property real rowHeight: 0
 
     property string search: ""
+    // Search score of every mod by file name, for the order of the visible ones.
+    property var searchScores: ({})
+
+    // Voice language packs are the "LolSikins Voice <ll_CC>" mods; only one of them can be on.
+    readonly property string voicePrefix: "LolSikins Voice"
+    // Codes of the languages that have a voice pack.
+    property var voiceInstalled: []
 
     signal modRemoved(string fileName)
 
@@ -50,7 +58,7 @@ ColumnLayout {
             "Image": CSLOLUtils.toFile("./installed/" + fileName + "/META/image.png"),
             "Enabled": enabled === true
         }
-        if (searchMatches(infoData)) {
+        if (scoreOf(fileName, infoData) > 0) {
             cslolModsViewModel.append(infoData)
             resortMod_model(cslolModsViewModel.count - 1, cslolModsViewModel)
         } else {
@@ -65,9 +73,10 @@ ColumnLayout {
     }
 
     function updateModInfo(fileName, info) {
+        let matches = scoreOf(fileName, info) > 0
         let i0 = updateModInfo_model(fileName, info, cslolModsViewModel);
         if (i0 !== -1) {
-            if (!searchMatches(info)) {
+            if (!matches) {
                 cslolModsViewModel2.append(cslolModsViewModel.get(i0))
                 cslolModsViewModel.remove(i0)
             } else {
@@ -77,7 +86,7 @@ ColumnLayout {
 
         let i1 = updateModInfo_model(fileName, info, cslolModsViewModel2);
         if (i1 !== -1) {
-            if (searchMatches(info)) {
+            if (matches) {
                 cslolModsViewModel.append(cslolModsViewModel2.get(i1))
                 cslolModsViewModel2.remove(i1)
                 resortMod_model(cslolModsViewModel.count - 1, cslolModsViewModel)
@@ -92,18 +101,41 @@ ColumnLayout {
         return mods
     }
 
-    function searchMatches(info) {
-        return search == "" || info["Name"].toLowerCase().search(search) !== -1 || info["Description"].toLowerCase().search(search) !== -1
+    function isVoice(fileName) {
+        return fileName.startsWith(voicePrefix)
+    }
+
+    // Search score of a mod, kept for ordering; 0 when it does not match the search. The name is left out when the
+    // file name already holds it ("Night Fox" in "Ahri - Night Fox"), so letters are not matched across the copies.
+    function scoreOf(fileName, info) {
+        let name = info["Name"]
+        let text = fileName.toLowerCase().indexOf(name.toLowerCase()) !== -1 ? fileName : name + " " + fileName
+        let score = Search.score(search, text, info["Description"])
+        searchScores[fileName] = score
+        return score
+    }
+
+    // Visible mods go in order of how well they match the search, then voice packs first, then by name.
+    function before(a, b) {
+        let scoreA = searchScores[a["FileName"]] || 0
+        let scoreB = searchScores[b["FileName"]] || 0
+        if (scoreA !== scoreB) {
+            return scoreA > scoreB
+        }
+        let voiceA = isVoice(a["FileName"])
+        if (voiceA !== isVoice(b["FileName"])) {
+            return voiceA
+        }
+        return a["Name"].toLowerCase() < b["Name"].toLowerCase()
     }
 
     function searchUpdate() {
         let i = 0;
         while (i < cslolModsViewModel2.count) {
             let obj = cslolModsViewModel2.get(i)
-            if (searchMatches(obj)) {
+            if (scoreOf(obj["FileName"], obj) > 0) {
                 cslolModsViewModel.append(obj);
                 cslolModsViewModel2.remove(i, 1)
-                resortMod_model(cslolModsViewModel.count - 1, cslolModsViewModel)
             } else {
                 i++;
             }
@@ -111,11 +143,30 @@ ColumnLayout {
         let j = 0;
         while (j < cslolModsViewModel.count) {
             let obj2 = cslolModsViewModel.get(j)
-            if (!searchMatches(obj2)) {
+            if (scoreOf(obj2["FileName"], obj2) === 0) {
                 cslolModsViewModel2.append(obj2)
                 cslolModsViewModel.remove(j, 1)
             } else {
                 j++;
+            }
+        }
+        sortVisible()
+    }
+
+    // Puts the visible mods in order with moves, which keeps the cards that stay in the list.
+    function sortVisible() {
+        let rows = []
+        for (let i = 0; i < cslolModsViewModel.count; i++) {
+            let obj = cslolModsViewModel.get(i)
+            rows.push({ "FileName": obj["FileName"], "Name": obj["Name"] })
+        }
+        let current = rows.map(row => row.FileName)
+        rows.sort((a, b) => before(a, b) ? -1 : before(b, a) ? 1 : 0)
+        for (let i = 0; i < rows.length; i++) {
+            let from = current.indexOf(rows[i].FileName, i)
+            if (from !== i) {
+                cslolModsViewModel.move(from, i, 1)
+                current.splice(i, 0, current.splice(from, 1)[0])
             }
         }
     }
@@ -123,13 +174,13 @@ ColumnLayout {
     function resortMod_model(index, model) {
         let info = model.get(index)
         for (let i = 0; i < index; i++) {
-            if (model.get(i)["Name"].toLowerCase() >= info["Name"].toLowerCase()) {
+            if (!before(model.get(i), info)) {
                 model.move(index, i, 1);
                 return i;
             }
         }
         for (let j = model.count - 1; j > index; j--) {
-            if (model.get(j)["Name"].toLowerCase() <= info["Name"].toLowerCase()) {
+            if (!before(info, model.get(j))) {
                 model.move(index, j, 1);
                 return j;
             }
@@ -185,12 +236,17 @@ ColumnLayout {
         return -1;
     }
 
-    // Turns one mod on, used when a freshly built voice pack is installed.
-    function enableMod(fileName) {
+    // Turns a mod on or off. Turning a voice pack on turns the other voice packs off.
+    function setModEnabled(fileName, enabled) {
+        let voice = enabled && isVoice(fileName)
         for (let model of [cslolModsViewModel, cslolModsViewModel2]) {
             for (let i = 0; i < model.count; i++) {
-                if (model.get(i)["FileName"] === fileName && !model.get(i)["Enabled"]) {
-                    model.setProperty(i, "Enabled", true)
+                let obj = model.get(i)
+                let value = obj["FileName"] === fileName ? enabled
+                          : voice && isVoice(obj["FileName"]) ? false
+                          : obj["Enabled"]
+                if (obj["Enabled"] !== value) {
+                    model.setProperty(i, "Enabled", value)
                 }
             }
         }
@@ -202,36 +258,43 @@ ColumnLayout {
         checkedUpdate()
     }
 
+    // Turning everything on leaves the voice packs as they are, since only one of them can be on.
     function checkAllInternal(doEnable) {
-        for(let i = 0; i < cslolModsViewModel.count; i++) {
-            let obj = cslolModsViewModel.get(i)
-            if (obj["Enabled"] !== doEnable) {
-                cslolModsViewModel.setProperty(i, "Enabled", doEnable)
-            }
-        }
-        for(let j = 0; j < cslolModsViewModel2.count; j++) {
-            let obj = cslolModsViewModel2.get(j)
-            if (obj["Enabled"] !== doEnable) {
-                cslolModsViewModel2.setProperty(j, "Enabled", doEnable)
+        for (let model of [cslolModsViewModel, cslolModsViewModel2]) {
+            for (let i = 0; i < model.count; i++) {
+                let obj = model.get(i)
+                if (obj["Enabled"] !== doEnable && !(doEnable && isVoice(obj["FileName"]))) {
+                    model.setProperty(i, "Enabled", doEnable)
+                }
             }
         }
     }
 
     function checkedUpdate() {
         let enabled = 0
-        for(let i = 0; i < cslolModsViewModel.count; i++) {
-            if (cslolModsViewModel.get(i)["Enabled"]) {
-                enabled++
-            }
-        }
-        for(let j = 0; j < cslolModsViewModel2.count; j++) {
-            if (cslolModsViewModel2.get(j)["Enabled"]) {
-                enabled++
+        let skins = 0
+        let skinsEnabled = 0
+        let voices = []
+        for (let model of [cslolModsViewModel, cslolModsViewModel2]) {
+            for (let i = 0; i < model.count; i++) {
+                let obj = model.get(i)
+                if (obj["Enabled"]) {
+                    enabled++
+                }
+                if (isVoice(obj["FileName"])) {
+                    voices.push(obj["FileName"].substring(voicePrefix.length + 1))
+                } else {
+                    skins++
+                    if (obj["Enabled"]) {
+                        skinsEnabled++
+                    }
+                }
             }
         }
         enabledCount = enabled
-        let total = cslolModsViewModel.count + cslolModsViewModel2.count
-        allState = enabled === 0 ? Qt.Unchecked : enabled === total ? Qt.Checked : Qt.PartiallyChecked
+        voiceInstalled = voices
+        // "All" means every skin; a voice pack only counts as something that is on.
+        allState = enabled === 0 ? Qt.Unchecked : skinsEnabled === skins ? Qt.Checked : Qt.PartiallyChecked
     }
 
     function refreshedMods(mods) {
@@ -382,10 +445,7 @@ ColumnLayout {
                         anchors.fill: parent
                         hoverEnabled: true
                         enabled: !isBussy
-                        onClicked: {
-                            cslolModsViewModel.setProperty(index, "Enabled", !model.Enabled)
-                            cslolModsView.checkedUpdate()
-                        }
+                        onClicked: cslolModsView.setModEnabled(model.FileName, !model.Enabled)
                     }
 
                     RowLayout {
@@ -404,11 +464,20 @@ ColumnLayout {
                             }
                             Text {
                                 anchors.centerIn: parent
-                                visible: thumb.status !== Image.Ready
+                                visible: thumb.status !== Image.Ready && !cslolModsView.isVoice(model.FileName)
                                 text: model.Name ? model.Name.charAt(0).toUpperCase() : "?"
                                 color: Neon.text
                                 font.pixelSize: 30
                                 font.bold: true
+                            }
+                            // Voice packs show a microphone.
+                            Text {
+                                anchors.centerIn: parent
+                                visible: thumb.status !== Image.Ready && cslolModsView.isVoice(model.FileName)
+                                text: ""
+                                font.family: "FontAwesome"
+                                color: Neon.text
+                                font.pixelSize: 34
                             }
                             Image {
                                 id: thumb
@@ -461,18 +530,15 @@ ColumnLayout {
                                 Layout.alignment: Qt.AlignHCenter
                                 checked: model.Enabled
                                 enabled: !isBussy
-                                tip: I18n.t("enableMod")
-                                onToggled: {
-                                    cslolModsViewModel.setProperty(index, "Enabled", checked)
-                                    cslolModsView.checkedUpdate()
-                                }
+                                tip: cslolModsView.isVoice(model.FileName) ? I18n.t("enableVoice") : I18n.t("enableMod")
+                                onToggled: cslolModsView.setModEnabled(model.FileName, checked)
                             }
                             NeonIconButton {
                                 Layout.alignment: Qt.AlignHCenter
                                 glyph: "\uf1f8"
                                 size: 30
                                 danger: true
-                                tip: I18n.t("removeMod")
+                                tip: cslolModsView.isVoice(model.FileName) ? I18n.t("removeVoice") : I18n.t("removeMod")
                                 enabled: !isBussy
                                 opacity: cardMouse.containsMouse || hovered ? 1 : 0.35
                                 onClicked: {
@@ -507,8 +573,9 @@ ColumnLayout {
             enabled: !isBussy || window.patcherRunning
             placeholderText: I18n.t("search")
             onTextEdited: {
-                search = text.toLowerCase()
+                search = text
                 searchUpdate()
+                cslolModsViewView.positionViewAtBeginning()
             }
         }
         NeonButton {

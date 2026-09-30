@@ -217,4 +217,4 @@ mod-tools mkvoice <ll_CC> <dst_mod_dir> --game:<path> [--work:<dir>] [--name:<mo
 
 Prints `Voice progress: <done>/<total> MB, <done>/<count> files` while downloading.
 
-`mkoverlay` also takes `--under:<name>/...`: mods listed there are merged first and give way to any other mod that changes the same files, without a conflict error. LolSikins passes its voice pack this way.
+`mkoverlay` also takes `--under:<name>/...`: mods listed there are merged first and give way to any other mod that changes the same files, without a conflict error. LolSikins keeps one voice pack per language in `installed/LolSikins Voice <ll_CC>` and passes the one that is on this way.
