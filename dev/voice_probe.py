@@ -172,6 +172,37 @@ if HASHES:
         paths[int(h, 16)] = p
     log("vo hashes:", len(paths))
 
+MODE = os.environ.get("PROBE_MODE", "compare")
+if MODE == "classify":
+    # What do the non-champion locale WADs hold besides voice-over? Needs the full hash list.
+    every = {}
+    for line in open(os.environ["ALL_HASHES"], encoding="utf-8", errors="replace"):
+        h, _, p = line.rstrip("\n").partition(" ")
+        every[int(h, 16)] = p
+    log("all hashes:", len(every))
+    for path in sorted(p for p in files if p.endswith(".ja_JP.wad.client") and "/Champions/" not in p):
+        _, entries = toc(path)
+        kinds = collections.Counter()
+        samples = collections.defaultdict(list)
+        for e in entries:
+            known = every.get(e[0])
+            kind = "unknown" if known is None else ("vo" if "/vo/" in known else known.split("/")[0] + "/" + (known.split("/")[1] if "/" in known else ""))
+            kinds[kind] += 1
+            if len(samples[kind]) < 3:
+                samples[kind].append(known or f"{e[0]:016x}")
+        log(f"{path}: {len(entries)} entries {dict(kinds)}")
+        for kind, items in samples.items():
+            log(f"   {kind}: {items}")
+    # Raw compressed bundle ranges of one small file, to test the downloader offline.
+    size, chunk_ids = files["DATA/FINAL/Champions/Alistar.ja_JP.wad.client"]
+    for chunk_id in chunk_ids:
+        bundle_id, position, csize, usize = chunk_index[chunk_id]
+        status, data = http(f"{bundle_base}{bundle_id:016X}.bundle", {"Range": f"bytes={position}-{position + csize - 1}"})
+        open(os.path.join(OUT, f"raw-{bundle_id:016X}-{position}.bin"), "wb").write(data)
+    log("saved raw ranges for Alistar.ja_JP:", len(chunk_ids))
+    log("done")
+    sys.exit(0)
+
 # Do the target locale's WADs use the same entry paths (hashes) as the current locale's? Then a voice pack is the
 # target WAD renamed to the current locale, no path changes needed.
 types = collections.Counter()

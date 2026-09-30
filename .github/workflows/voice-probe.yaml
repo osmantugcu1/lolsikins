@@ -7,6 +7,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+env:
+  PROBE_MODE: classify
+  RELEASE_TAG: voice-classify
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -14,12 +17,15 @@ jobs:
     - uses: actions/checkout@v4
     - name: "Python packages"
       run: pip install zstandard xxhash
-    - name: "Voice-over hash list"
+    - name: "Hash lists"
       run: |
         mkdir -p out
-        curl --fail -sSL "https://raw.communitydragon.org/data/hashes/lol/hashes.game.txt" | grep "/vo/" > out/vo-hashes.txt
-        wc -l out/vo-hashes.txt
+        curl --fail -sSL "https://raw.communitydragon.org/data/hashes/lol/hashes.game.txt" -o "$RUNNER_TEMP/all-hashes.txt"
+        grep "/vo/" "$RUNNER_TEMP/all-hashes.txt" > out/vo-hashes.txt
+        wc -l "$RUNNER_TEMP/all-hashes.txt" out/vo-hashes.txt
     - name: "Probe"
+      env:
+        ALL_HASHES: ${{ runner.temp }}/all-hashes.txt
       run: python3 dev/voice_probe.py out out/vo-hashes.txt
     - name: "Publish test data"
       if: always()
@@ -27,5 +33,5 @@ jobs:
         GH_TOKEN: ${{ github.token }}
       run: |
         ls -la out
-        gh release delete voice-testdata --cleanup-tag --yes || true
-        gh release create voice-testdata out/* --prerelease --target "$GITHUB_SHA" --title "voice test data (temporary)" --notes "Temporary data for developing the voice-language feature. Safe to delete."
+        gh release delete "$RELEASE_TAG" --cleanup-tag --yes || true
+        gh release create "$RELEASE_TAG" out/* --prerelease --target "$GITHUB_SHA" --title "voice test data (temporary)" --notes "Temporary data for developing the voice-language feature. Safe to delete."
