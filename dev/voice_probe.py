@@ -151,6 +151,20 @@ def wad_entries(data):
     return (major, minor), [struct.unpack_from("<QIIIB", data, 272 + 32 * i) for i in range(count)]
 
 
+def toc(path):
+    """Download only the start of a WAD, enough to read its table of contents."""
+    size, chunk_ids = files[path]
+    data = bytearray()
+    for chunk_id in chunk_ids:
+        bundle_id, position, csize, usize = chunk_index[chunk_id]
+        status, raw_chunk = http(f"{bundle_base}{bundle_id:016X}.bundle",
+                                 {"Range": f"bytes={position}-{position + csize - 1}"})
+        data += zstandard.ZstdDecompressor().decompress(raw_chunk, max_output_size=usize)
+        if len(data) >= 272 and len(data) >= 272 + 32 * struct.unpack_from("<I", data, 268)[0]:
+            break
+    return wad_entries(bytes(data))
+
+
 paths = {}
 if HASHES:
     for line in open(HASHES, encoding="utf-8", errors="replace"):
@@ -158,33 +172,31 @@ if HASHES:
         paths[int(h, 16)] = p
     log("vo hashes:", len(paths))
 
-for folder, name in [("Champions", "Alistar"), ("Champions", "Zilean"), ("Champions", "Talon"),
-                     ("Maps/Shipping", "Common")]:
-    pair = {}
-    for locale in ("ja_JP", "en_US"):
-        path = f"DATA/FINAL/{folder}/{name}.{locale}.wad.client"
-        data = download(path)
-        open(os.path.join(OUT, f"{name}.{locale}.wad.client"), "wb").write(data)
-        pair[locale] = data
-    ja_version, ja = wad_entries(pair["ja_JP"])
-    en_version, en = wad_entries(pair["en_US"])
-    en_hashes = {e[0] for e in en}
-    known = matched = 0
-    unknown = []
-    for entry in ja:
-        path = paths.get(entry[0])
-        if path is None:
-            unknown.append(entry)
+# Do the target locale's WADs use the same entry paths (hashes) as the current locale's? Then a voice pack is the
+# target WAD renamed to the current locale, no path changes needed.
+types = collections.Counter()
+same = subset = differ = 0
+locale_paths = collections.Counter()
+pairs = sorted({p.rsplit(".", 3)[0] for p in files if p.endswith(".ja_JP.wad.client")})
+for base in pairs:
+    for other in ("en_US", "tr_TR"):
+        if f"{base}.{other}.wad.client" not in files:
             continue
-        known += 1
-        if xxhash.xxh64_intdigest(path.replace("/vo/ja_jp/", "/vo/en_us/")) in en_hashes:
-            matched += 1
+        _, ja = toc(f"{base}.ja_JP.wad.client")
+        _, cur = toc(f"{base}.{other}.wad.client")
+        ja_set, cur_set = {e[0] for e in ja}, {e[0] for e in cur}
+        types.update(e[4] & 15 for e in ja)
+        for e in ja:
+            p = paths.get(e[0], "?")
+            locale_paths[p.split("/vo/")[1].split("/")[0] if "/vo/" in p else ("unknown" if p == "?" else "other")] += 1
+        if ja_set == cur_set:
+            same += 1
+        elif ja_set <= cur_set:
+            subset += 1
         else:
-            log("   no en_US counterpart:", path)
-    log(f"{name}: wad {ja_version}/{en_version}, ja entries {len(ja)} (known {known}, remapped {matched}), "
-        f"en entries {len(en)}, types {dict(collections.Counter(e[4] & 15 for e in ja))}")
-    for entry in unknown[:5]:
-        log(f"   unknown ja entry {entry[0]:016x} size {entry[3]} type {entry[4] & 15}")
-    for entry in ja[:4]:
-        log(f"   ja {entry[0]:016x} {paths.get(entry[0], '?')}")
+            differ += 1
+            log(f"  {base} ja vs {other}: only in ja {len(ja_set - cur_set)}, only in {other} {len(cur_set - ja_set)}")
+log(f"pairs compared: same hashes {same}, ja subset {subset}, differ {differ}")
+log("ja entry types:", dict(types))
+log("ja entry path locale folders:", dict(locale_paths))
 log("done")
