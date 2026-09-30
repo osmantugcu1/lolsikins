@@ -35,7 +35,8 @@ def http(url, headers=None):
 
 
 # 1. Find the live game manifest --------------------------------------------------------------------------------
-SIEVE = "https://sieve.services.riotcdn.net/api/v1/products/lol/version-sets/{region}?q[platform]=windows&q[published]=true"
+SIEVE = ("https://sieve.services.riotcdn.net/api/v1/products/lol/version-sets/{region}"
+         "?q[artifact_type_id]=lol-game-client&q[platform]=windows&q[published]=true")
 manifest_url = None
 for region in ["EUW1", "TR1", "NA1"]:
     url = SIEVE.format(region=region)
